@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus Meet | CodeAlpha Real-Time Video & Collaboration</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <!-- Top bar -->
+  <div class="top-bar">
+    <div class="container-fluid top-bar-content">
+      <span><i class="fa-solid fa-graduation-cap"></i> <strong>CodeAlpha Internship Task 4</strong>: Real-Time Communication App (WebRTC & Whiteboard)</span>
+      <span class="intern-tag">Intern: Redeemer Jerrey Kow Williams (CA/DF1/320453)</span>
+    </div>
+  </div>
+
+  <!-- VIEW 1: LOBBY -->
+  <div id="lobbyView" class="lobby-container">
+    <div class="lobby-card">
+      <div class="brand">
+        <i class="fa-solid fa-video brand-icon"></i>
+        <span>Nexus<strong>Meet</strong></span>
+      </div>
+      <h2>Enterprise Video Collaboration</h2>
+      <p class="subtitle">Multi-User WebRTC Calling • Screen Share • Collaborative Whiteboard • Encrypted File Sharing</p>
+
+      <div class="lobby-form">
+        <div class="form-group">
+          <label>Your Display Name</label>
+          <input type="text" id="userNameInput" placeholder="Redeemer Williams" value="Redeemer Williams">
+        </div>
+
+        <div class="form-group">
+          <label>Meeting Room Code</label>
+          <div class="input-with-action">
+            <input type="text" id="roomInput" placeholder="e.g. alpha-standup" value="alpha-standup">
+            <button type="button" class="btn btn-outline btn-sm" onclick="rtcApp.generateRandomRoom()">Generate</button>
+          </div>
+        </div>
+
+        <div class="lobby-actions">
+          <button class="btn btn-primary btn-block btn-lg" onclick="rtcApp.joinMeeting()">
+            <i class="fa-solid fa-video"></i> Join Meeting Room
+          </button>
+        </div>
+
+        <div class="lobby-features">
+          <div class="feat"><i class="fa-solid fa-lock"></i> WebRTC DTLS/SRTP Encryption</div>
+          <div class="feat"><i class="fa-solid fa-desktop"></i> HD Screen Sharing</div>
+          <div class="feat"><i class="fa-solid fa-pen-nib"></i> Live Vector Whiteboard</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW 2: MEETING ROOM -->
+  <div id="meetingView" class="meeting-layout" style="display: none;">
+    <!-- Main Stage (Video Grid & Whiteboard) -->
+    <div class="stage-container">
+      <!-- Video Streams Grid -->
+      <div class="videos-grid" id="videosGrid">
+        <!-- Local User Video Card -->
+        <div class="video-card local-card" id="localVideoCard">
+          <video id="localVideo" autoplay playsinline muted></video>
+          <div class="video-overlay">
+            <span class="user-label" id="localUserLabel">You (Redeemer)</span>
+            <div class="stream-indicators">
+              <span id="localMicIndicator"><i class="fa-solid fa-microphone"></i></span>
+              <span id="localCamIndicator"><i class="fa-solid fa-video"></i></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Collaborative Whiteboard Drawer / Overlay -->
+      <div class="whiteboard-overlay" id="whiteboardOverlay" style="display: none;">
+        <div class="whiteboard-header">
+          <div class="whiteboard-title">
+            <i class="fa-solid fa-pen-ruler"></i>
+            <h3>Live Collaborative Whiteboard</h3>
+          </div>
+          <div class="wb-toolbar">
+            <input type="color" id="wbColor" value="#3b82f6" title="Pick color">
+            <select id="wbBrushSize" title="Brush size">
+              <option value="2">Thin (2px)</option>
+              <option value="5" selected>Medium (5px)</option>
+              <option value="12">Bold (12px)</option>
+              <option value="25">Marker (25px)</option>
+            </select>
+            <button class="btn btn-outline btn-sm" id="wbEraserBtn" onclick="rtcApp.toggleEraser()">
+              <i class="fa-solid fa-eraser"></i> Eraser
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="rtcApp.clearWhiteboard()">
+              <i class="fa-solid fa-trash-can"></i> Clear
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="rtcApp.downloadWhiteboard()">
+              <i class="fa-solid fa-download"></i> Save PNG
+            </button>
+          </div>
+          <button class="btn-close-wb" onclick="rtcApp.toggleWhiteboard(false)"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="whiteboard-canvas-container">
+          <canvas id="whiteboardCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Sidebar (Chat & File Share) -->
+    <aside class="meeting-sidebar" id="meetingSidebar" style="display: none;">
+      <div class="sidebar-header">
+        <div class="tabs-header">
+          <button id="tabChat" class="tab-btn active" onclick="rtcApp.switchSidebarTab('chat')">In-Call Chat</button>
+          <button id="tabFiles" class="tab-btn" onclick="rtcApp.switchSidebarTab('files')">Files</button>
+        </div>
+        <button class="btn-close-sidebar" onclick="rtcApp.toggleSidebar(false)"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Chat Pane -->
+      <div id="paneChat" class="sidebar-pane active">
+        <div class="chat-messages-scroll" id="chatMessages">
+          <div class="system-message">Joined room. Messages are encrypted and ephemeral.</div>
+        </div>
+        <form onsubmit="rtcApp.sendChatMessage(event)" class="chat-input-bar">
+          <input type="text" id="chatInput" placeholder="Send a message to everyone..." autocomplete="off">
+          <button type="submit" class="btn btn-primary btn-sm"><i class="fa-regular fa-paper-plane"></i></button>
+        </form>
+      </div>
+
+      <!-- Files Pane -->
+      <div id="paneFiles" class="sidebar-pane">
+        <div class="file-drop-zone" onclick="document.getElementById('fileUploadInput').click()">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <h4>Click to share a file</h4>
+          <p>Any file type up to 50MB</p>
+          <input type="file" id="fileUploadInput" style="display: none;" onchange="rtcApp.handleFileUpload(event)">
+        </div>
+
+        <h4 style="margin: 16px 0 10px; font-size: 0.9rem;">Shared Files (<span id="sharedFilesCount">0</span>)</h4>
+        <div class="files-list" id="sharedFilesList"></div>
+      </div>
+    </aside>
+
+    <!-- Bottom Controls Bar -->
+    <footer class="meeting-controls-bar">
+      <div class="controls-left">
+        <span class="room-pill"><i class="fa-solid fa-shield-halved"></i> Room: <strong id="activeRoomCode">alpha-standup</strong></span>
+      </div>
+
+      <div class="controls-center">
+        <button class="control-btn" id="btnToggleMic" onclick="rtcApp.toggleMic()" title="Mute/Unmute Mic">
+          <i class="fa-solid fa-microphone"></i>
+        </button>
+
+        <button class="control-btn" id="btnToggleCam" onclick="rtcApp.toggleCam()" title="Start/Stop Video">
+          <i class="fa-solid fa-video"></i>
+        </button>
+
+        <button class="control-btn" id="btnShareScreen" onclick="rtcApp.toggleScreenShare()" title="Share Screen">
+          <i class="fa-solid fa-desktop"></i>
+        </button>
+
+        <button class="control-btn" id="btnToggleWhiteboard" onclick="rtcApp.toggleWhiteboard()" title="Interactive Whiteboard">
+          <i class="fa-solid fa-pen-ruler"></i>
+        </button>
+
+        <button class="control-btn" id="btnToggleChat" onclick="rtcApp.toggleSidebar()" title="Meeting Chat & Files">
+          <i class="fa-regular fa-comments"></i>
+        </button>
+
+        <button class="control-btn btn-leave" onclick="rtcApp.leaveMeeting()" title="Leave Meeting">
+          <i class="fa-solid fa-phone-slash"></i>
+        </button>
+      </div>
+
+      <div class="controls-right">
+        <div class="time-clock" id="callClock">00:00</div>
+      </div>
+    </footer>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+

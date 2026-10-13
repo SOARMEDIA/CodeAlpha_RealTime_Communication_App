@@ -1,0 +1,21 @@
+{
+  "name": "codealpha-realtime-communication-app",
+  "version": "1.0.0",
+  "description": "CodeAlpha Full Stack Development Internship - Task 4: Real-Time Communication App (WebRTC Video Conferencing & Whiteboard)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": ["codealpha", "webrtc", "video-call", "whiteboard", "socketio", "fullstack"],
+  "author": "Redeemer Jerrey Kow Williams (CA/DF1/320453)",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "socket.io": "^4.7.5"
+  }
+}
+
